@@ -45,15 +45,21 @@ function drawAll() {
     for (let p of particles) p.draw(ctx, width, height);
 }
 
+function getEffectiveScale() {
+    return CONFIG.zoomOverride ? CONFIG.zoomScale : CONFIG.scale;
+}
+
 function screenToWorld(sx, sy) {
-    const wx = (sx - width / 2) / CONFIG.scale + CONFIG.offsetX;
-    const wy = (height / 2 - sy) / CONFIG.scale + CONFIG.offsetY;
+    const effectiveScale = getEffectiveScale();
+    const wx = (sx - width / 2) / effectiveScale + CONFIG.offsetX;
+    const wy = (height / 2 - sy) / effectiveScale + CONFIG.offsetY;
     return { x: wx, y: wy };
 }
 
 function worldToScreen(wx, wy) {
-    const sx = width / 2 + (wx - CONFIG.offsetX) * CONFIG.scale;
-    const sy = height / 2 - (wy - CONFIG.offsetY) * CONFIG.scale;
+    const effectiveScale = getEffectiveScale();
+    const sx = width / 2 + (wx - CONFIG.offsetX) * effectiveScale;
+    const sy = height / 2 - (wy - CONFIG.offsetY) * effectiveScale;
     return { x: sx, y: sy };
 }
 
@@ -121,10 +127,6 @@ canvas.addEventListener('mouseup', (e) => {
     const heightPx = y2 - y1;
     const minSize = 6;
     if (widthPx < minSize || heightPx < minSize) {
-        
-        CONFIG.scale = CONFIG.defaultScale;
-        CONFIG.offsetX = 0;
-        CONFIG.offsetY = 0;
         return;
     }
 
@@ -132,14 +134,24 @@ canvas.addEventListener('mouseup', (e) => {
     const cy = y1 + heightPx / 2;
     const centerWorld = screenToWorld(cx, cy);
 
-    const newScaleX = CONFIG.scale * (width / widthPx);
-    const newScaleY = CONFIG.scale * (height / heightPx);
+    const currentScale = getEffectiveScale();
+    const newScaleX = currentScale * (width / widthPx);
+    const newScaleY = currentScale * (height / heightPx);
     let newScale = Math.min(newScaleX, newScaleY);
     newScale = Math.max(CONFIG.minScale, Math.min(CONFIG.maxScale, newScale));
 
-    CONFIG.scale = newScale;
+    CONFIG.zoomOverride = true;
+    CONFIG.zoomScale = newScale;
     CONFIG.offsetX = centerWorld.x;
     CONFIG.offsetY = centerWorld.y;
+    console.log('Zoom applied:', { zoomOverride: CONFIG.zoomOverride, zoomScale: CONFIG.zoomScale, offsetX: CONFIG.offsetX, offsetY: CONFIG.offsetY });
+});
+
+canvas.addEventListener('dblclick', (e) => {
+    CONFIG.zoomOverride = false;
+    CONFIG.scale = CONFIG.sliderScale;
+    CONFIG.offsetX = 0;
+    CONFIG.offsetY = 0;
 });
 
 function drawSelectionOverlay() {
@@ -171,18 +183,29 @@ function animate() {
 
 createParticles(CONFIG.particleCount);
 
-const container = document.getElementById('controls');
+const container = document.getElementById('controls-content');
+const controlsPanel = document.getElementById('controls');
+const toggleBtn = document.getElementById('toggle-menu');
+
+toggleBtn.addEventListener('click', () => {
+    controlsPanel.classList.toggle('hidden');
+    toggleBtn.textContent = controlsPanel.classList.contains('hidden') ? '▶' : '◀';
+});
+
 controlsHandle = initControls(container, {
-    onConfigChange: () => { controlsHandle?.updateFooter(CONFIG.mu, CONFIG.particleCount, CONFIG.scale); },
-    onParticlesChange: (n) => { setParticleCount(n); controlsHandle?.updateFooter(CONFIG.mu, CONFIG.particleCount, CONFIG.scale); },
+    onConfigChange: () => { controlsHandle?.updateFooter(CONFIG.mu, CONFIG.particleCount, getEffectiveScale()); },
+    onParticlesChange: (n) => { setParticleCount(n); controlsHandle?.updateFooter(CONFIG.mu, CONFIG.particleCount, getEffectiveScale()); },
     onPauseToggle: (paused) => { },
     onReset: () => { for (let p of particles) p.reset(); },
     onResetView: () => {
-        fitViewToParticles();
+        CONFIG.zoomOverride = false;
+        CONFIG.scale = CONFIG.sliderScale;
+        CONFIG.offsetX = 0;
+        CONFIG.offsetY = 0;
     }
 });
 
-controlsHandle.updateFooter(CONFIG.mu, CONFIG.particleCount, CONFIG.scale);
+controlsHandle.updateFooter(CONFIG.mu, CONFIG.particleCount, getEffectiveScale());
 
 ctx.fillStyle = 'rgb(18, 18, 18)';
 ctx.fillRect(0, 0, width, height);

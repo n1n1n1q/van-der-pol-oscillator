@@ -3,6 +3,9 @@ export const CONFIG = {
     trailOpacity: 0.01,
     particleSpeed: 3,
     scale: 100,
+    sliderScale: 100,
+    zoomOverride: false,
+    zoomScale: 100,
     defaultScale: 500,
     minScale: 10,
     maxScale: 5000,
@@ -10,5 +13,9 @@ export const CONFIG = {
     offsetY: 0,
     mu: 0.6,
     colorSpeed: true,
-    paused: false
+    paused: false,
+    oscillatorMode: 'standard',
+    forceAmplitude: 1.0,
+    forceOmega: 1.0,
+    time: 0
 };
