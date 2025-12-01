@@ -8,7 +8,7 @@ export const CONFIG = {
     zoomScale: 100,
     defaultScale: 500,
     minScale: 10,
-    maxScale: 5000,
+    maxScale: 1000,
     offsetX: 0,
     offsetY: 0,
     mu: 0.6,
